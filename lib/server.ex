@@ -49,7 +49,7 @@ defmodule FuturamaQuotes.Server do
   # Private helpers
   defp take_multi(q_list) do
     q_list
-    |> Enum.filter(&(&1 |> String.match?(~r/^[ “,]+.+: /)))
+    |> Enum.filter(&(&1 |> String.match?(~r/^[^ “,]+.+: /)))
     |> Enum.map(fn q ->
       pair = q |> String.split(":")
       %Quote{
@@ -63,11 +63,16 @@ defmodule FuturamaQuotes.Server do
     q_list
     |> Enum.filter(&(&1 |> String.at(0) == "“"))
     |> Enum.map(fn q ->
-      pair = q |> String.split(~r/\s-/)
-      %Quote{
-        by: pair |> List.last |> String.replace("-",""),
-        text: pair |> Enum.slice(0..-2) |> Enum.join
-      }
+      full_block = String.split(q, ~r/\s-/)
+      names = full_block |> Enum.slice(1..-1) |> Enum.take_every(2) 
+      texts = Enum.take_every(full_block, 2)
+      
+      for {name, text} <- Enum.zip(names, texts) do
+        %Quote{
+          by: name,
+          text: text
+        }
+      end
     end)
   end
 
@@ -84,9 +89,9 @@ defmodule FuturamaQuotes.Server do
       "#{System.cwd!}/futurama.json"
       |> File.read!
       |> Poison.decode
-    take_multi(document) ++
-    take_dashed(document) ++
-    take_unattributed(document)
+    #take_multi(document) ++
+    take_dashed(document)# ++
+    #take_unattributed(document)
   end
 end
     

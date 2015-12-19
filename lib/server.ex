@@ -3,7 +3,7 @@ defmodule FuturamaQuotes.Server do
 
   @mod __MODULE__
 
-  defmodule Quote, do: defstruct by: "", text: nil
+  defmodule Quote, do: defstruct character: nil, text: nil
 
   # Client
 
@@ -49,11 +49,11 @@ defmodule FuturamaQuotes.Server do
   # Private helpers
   defp take_multi(q_list) do
     q_list
-    |> Enum.filter(&(&1 |> String.match?(~r/^[^ “,]+.+: /)))
+    |> Enum.filter(&(&1 |> String.match?(~r/[^ “,]+.+: /)))
     |> Enum.map(fn q ->
       pair = q |> String.split(":")
       %Quote{
-        by: hd(pair),
+        character: hd(pair),
         text: pair |> Enum.slice(1..-1) |> Enum.join
       }
     end)
@@ -69,11 +69,12 @@ defmodule FuturamaQuotes.Server do
       
       for {name, text} <- Enum.zip(names, texts) do
         %Quote{
-          by: name,
+          character: name,
           text: text
         }
       end
     end)
+    |> List.flatten
   end
 
   defp take_unattributed(q_list) do
@@ -89,9 +90,9 @@ defmodule FuturamaQuotes.Server do
       "#{System.cwd!}/futurama.json"
       |> File.read!
       |> Poison.decode
-    #take_multi(document) ++
-    take_dashed(document)# ++
-    #take_unattributed(document)
+    take_multi(document) ++
+    take_dashed(document) ++
+    take_unattributed(document)
   end
 end
     

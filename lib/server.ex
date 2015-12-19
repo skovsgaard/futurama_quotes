@@ -39,7 +39,10 @@ defmodule FuturamaQuotes.Server do
 
   def handle_call({:person, person}, _from, state) do
     {:reply,
-     quotes |> Enum.filter(&(&1.by |> String.contains?(person))),
+     quotes
+     |> Enum.filter(&(&1.by
+                      |> String.downcase
+                      |> String.contains?(person |> String.downcase))),
      state}
   end
 

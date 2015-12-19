@@ -37,28 +37,46 @@ defmodule FuturamaQuotes.Server do
   end
 
   # Private helpers
-  defp build_quotes([h|t]) do
-    cond do
-      String.at(h,0) == "“" -> do_single_quote([h|t], [])
-      String.match?(h, ~r/^[^" ,]+.+: /) -> do_multi_quote([h|t], [])
-      true -> %Quote{text: Enum.join(t)}
-    end
+  def take_multi(q_list) do
+    q_list
+    |> Enum.filter(&(&1 |> String.match?(~r/^[ “,]+.+: /)))
+    |> Enum.map(fn q ->
+      pair = q |> String.split(":")
+      %Quote{
+        by: hd(pair),
+        text: pair |> Enum.slice(1..-1) |> Enum.join
+      }
+    end)
   end
 
-  defp do_multi_quote([], acc), do: acc
-  defp do_multi_quote([h|t], acc) do
-    [character|text] = h |> String.split(":")
-    do_multi_quote(t, [acc | %Quote{by: character, text: text |> Enum.join}])
+  def take_dashed(q_list) do
+    q_list
+    |> Enum.filter(&(&1 |> String.at(0) == "“"))
+    |> Enum.map(fn q ->
+      pair = q |> String.split(~r/\s-/)
+      %Quote{
+        by: pair |> List.last |> String.replace("-",""),
+        text: pair |> Enum.slice(0..-2) |> Enum.join
+      }
+    end)
   end
 
-  defp do_single_quote([h|t], acc), do: :ok
+  def take_unattributed(q_list) do
+    q_list
+    |> Enum.filter(fn q ->
+      not String.match?(q, ~r/^[ “,]+.+: /) and String.at(q,0) != "“"
+    end)
+    |> Enum.map(&(%Quote{text: &1}))
+  end
 
   def quotes do
-    "#{System.cwd!}/futurama.json"
+    {:ok, document} =
+      "#{System.cwd!}/futurama.json"
       |> File.read!
-      |> Poison.decode!
-      |> Enum.map(&(&1 |> String.split("\n")))
-      |> Enum.map(&build_quotes/1)
+      |> Poison.decode
+    take_multi(document) ++
+    take_dashed(document) ++
+    take_unattributed(document)
   end
 end
     

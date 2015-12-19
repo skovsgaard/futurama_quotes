@@ -3,7 +3,7 @@ defmodule FuturamaQuotes.Server do
 
   @mod __MODULE__
 
-  defmodule Quote, do: defstruct by: nil, text: nil
+  defmodule Quote, do: defstruct by: "", text: nil
 
   # Client
 
@@ -12,6 +12,7 @@ defmodule FuturamaQuotes.Server do
   def get_by_id(id), do: GenServer.call(@mod, {:id, id})
   def get_random, do: GenServer.call(@mod, :random)
   def get_regex(regex), do: GenServer.call(@mod, {:regex, regex})
+  def get_by_person(person), do: GenServer.call(@mod, {:person, person})
 
   # Callbacks
 
@@ -36,8 +37,14 @@ defmodule FuturamaQuotes.Server do
      state}
   end
 
+  def handle_call({:person, person}, _from, state) do
+    {:reply,
+     quotes |> Enum.filter(&(&1.by |> String.contains?(person))),
+     state}
+  end
+
   # Private helpers
-  def take_multi(q_list) do
+  defp take_multi(q_list) do
     q_list
     |> Enum.filter(&(&1 |> String.match?(~r/^[ “,]+.+: /)))
     |> Enum.map(fn q ->
@@ -49,7 +56,7 @@ defmodule FuturamaQuotes.Server do
     end)
   end
 
-  def take_dashed(q_list) do
+  defp take_dashed(q_list) do
     q_list
     |> Enum.filter(&(&1 |> String.at(0) == "“"))
     |> Enum.map(fn q ->
@@ -61,7 +68,7 @@ defmodule FuturamaQuotes.Server do
     end)
   end
 
-  def take_unattributed(q_list) do
+  defp take_unattributed(q_list) do
     q_list
     |> Enum.filter(fn q ->
       not String.match?(q, ~r/^[ “,]+.+: /) and String.at(q,0) != "“"
@@ -69,7 +76,7 @@ defmodule FuturamaQuotes.Server do
     |> Enum.map(&(%Quote{text: &1}))
   end
 
-  def quotes do
+  defp quotes do
     {:ok, document} =
       "#{System.cwd!}/futurama.json"
       |> File.read!

@@ -43,34 +43,27 @@ defmodule FuturamaQuotes.Server do
   end
 
   # Private helpers
-  def build_quotes(q_list) do
+  defp build_quotes(q_list) do
     for entry <- q_list do
-      if String.contains?(entry, " -")
-      or String.contains?(entry, "--")
-      or String.starts_with?(entry, "“")do
-        [h|t] =
-          entry
-          |> String.replace("\n", "")
-          |> String.split("-")
-          |> Enum.reverse
-        
-        %Quote{
-          by: h |> String.replace(~r/,.*/, "", global: true),
-          text: t |> Enum.reverse |> Enum.slice(1, Enum.count(t)) |> Enum.join
-        }
-      else
-        if String.contains?(entry, ":") do
-          [h|t] = entry |> String.split(~r/: /)
-          %Quote{by: h, text: Enum.join(t)}
-        else
-          %Quote{by: nil, text: entry}
-        end
-      end
+      entry
+      |> String.split("\n")
+      |> build_entry
     end
   end
 
+  defp build_entry(entry) do
+    cond do
+      String.match?(List.first(entry), ~r/^[^ ]*: /) ->
+        [h|t] = entry |> List.first |> String.split(": ")
+        %Quote{by: h, text: t |> Enum.join}
+      String.match?(List.first(entry), ~r/^“/) ->
+        %Quote{by: entry |> List.last |> String.split(" -") |> List.last,
+               text: entry}
+      true -> %Quote{text: Enum.join(entry)}
+    end
+  end
 
-  defp quotes do
+  def quotes do
     "#{System.cwd!}/futurama.json"
       |> File.read!
       |> Poison.decode!

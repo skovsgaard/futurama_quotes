@@ -18,29 +18,36 @@ defmodule FuturamaQuotes.Server do
   # Callbacks
 
   def handle_call(:all, _from, state) do
-    {:reply, quotes, state}
+    {:reply, state ++ quotes, state}
   end
 
   def handle_call({:id, id}, _from, state) do
-    {:reply, quotes |> Enum.at(id |> String.to_integer), state}
+    {:reply,
+     List.flatten(state, quotes
+                         |> Enum.at(id |> String.to_integer)),
+     state}
   end
 
   def handle_call(:random, _from, state) do
     {:reply,
-     quotes
+     state
+     |> List.flatten(quotes)
      |> Enum.at(quotes |> Enum.count |> :random.uniform),
      state}
   end
 
   def handle_call({:regex, regex}, _from, state) do
     {:reply,
-     quotes |> Enum.filter(&(&1.text |> String.match?(regex))),
+     state
+     |> List.flatten(quotes)
+     |> Enum.filter(&(&1.text |> String.match?(regex))),
      state}
   end
 
   def handle_call({:person, person}, _from, state) do
     {:reply,
-     quotes
+     state
+     |> List.flatten(quotes)
      |> Enum.filter(&(&1.character
                       |> String.downcase
                       |> String.contains?(person |> String.downcase))),
@@ -53,13 +60,13 @@ defmodule FuturamaQuotes.Server do
                       text: q.body_params["text"]}
     {:reply,
       storable,
-      [state | storable]}
+      state ++ [storable]}
   end
 
   # Private helpers
   defp take_multi(q_list) do
     q_list
-    |> Enum.filter(&(&1 |> String.match?(~r/[^ “,]+.+: /)))
+    |> Enum.filter(&(&1 |> String.match?(~r/^[^ ]+.+: /)))
     |> Enum.map(fn q ->
       pair = q |> String.split(":")
       %Quote{

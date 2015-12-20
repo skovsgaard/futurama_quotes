@@ -18,52 +18,46 @@ defmodule FuturamaQuotes.Server do
 
   # Callbacks
 
-  def handle_call(:all, _from, state) do
+  def handle_call(:all, _from, _state) do
     Logger.info "GET /quote"
-    {:reply, state ++ quotes, state}
+    {:reply, quotes, :ok}
   end
 
-  def handle_call({:id, id}, _from, state) do
+  def handle_call({:id, id}, _from, _state) do
     Logger.info "GET /quote/id/#{id}"
     {:reply,
-     [state|quotes]
+     quotes
      |> List.flatten
      |> Enum.at(id |> String.to_integer),
-     state}
+     :ok}
   end
 
-  def handle_call(:random, _from, state) do
+  def handle_call(:random, _from, _state) do
     Logger.info "GET /quote/random"
     {:reply,
-     state
-     |> List.flatten(quotes)
+     quotes
      |> Enum.at(quotes |> Enum.count |> :random.uniform),
-     state}
+     :ok}
   end
 
-  def handle_call({:regex, regex_text}, _from, state) do
+  def handle_call({:regex, regex_text}, _from, _state) do
     {:ok, regex} = Regex.compile(regex_text)
     Logger.info "GET /quote/regex/#{Macro.to_string(regex)}"
     {:reply,
-     state
-     |> List.flatten(quotes)
+     quotes
      |> Enum.filter(&(&1 |> String.match?(regex))),
-     state}
+     :ok}
   end
 
-  def handle_call({:store, conn_state}, _from, state) do
+  def handle_call({:store, conn_state}, _from, _state) do
     {:ok, _body, q} = conn_state
     Logger.info "POST /quote \"#{q.body_params["quote"]}\""
     {:reply,
       q.body_params["quote"],
-      state ++ [q.body_params["quote"]]}
+      :ok}
   end
 
   # Private helpers
-  defp quotes do
-    "#{System.cwd!}/futurama.json"
-    |> File.read!
-    |> Poison.decode!
-  end
+  defp quotes, do: FuturamaQuotes.Storage.fetch_all
 end
     

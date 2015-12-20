@@ -7,7 +7,8 @@ defmodule FuturamaQuotes do
     import Supervisor.Spec, warn: false
 
     children = [
-      worker(FuturamaQuotes.Server, [], id: FuturamaQuotes.Server)
+      worker(FuturamaQuotes.Server, [], id: :quote_server),
+      worker(FuturamaQuotes.Storage, [], id: :quote_store)
     ]
 
     opts = [strategy: :one_for_one, name: FuturamaQuotes.Supervisor]

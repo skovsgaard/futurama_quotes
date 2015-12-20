@@ -2,6 +2,7 @@ defmodule FuturamaQuotes.Router do
   use Plug.Router
   alias FuturamaQuotes.Server
 
+  plug Plug.Parsers, parsers: [:json], json_decoder: Poison
   plug :match
   plug :dispatch
 
@@ -18,7 +19,11 @@ defmodule FuturamaQuotes.Router do
   get "/quote/by/:person",
     do: send_resp conn, 200, Server.get_by_person(person) |> Poison.encode!
 
-  post "/quote", do: send_resp conn, 403, "[will add person]"
+  post "/quote",
+    do: send_resp conn, 403, conn
+                             |> Plug.Conn.read_body
+                             |> Server.store_quote
+                             |> Poison.encode!
 
   match _, do: send_resp conn, 404, "No quote found for that route"
 end

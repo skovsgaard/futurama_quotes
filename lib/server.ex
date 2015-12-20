@@ -3,16 +3,17 @@ defmodule FuturamaQuotes.Server do
 
   @mod __MODULE__
 
-  defmodule Quote, do: defstruct character: nil, text: nil
+  defmodule Quote, do: defstruct character: "", text: nil
 
   # Client
 
-  def start_link, do: GenServer.start_link(@mod, :ok, name: @mod)
+  def start_link, do: GenServer.start_link(@mod, [], name: @mod)
   def get_all, do: GenServer.call(@mod, :all)
   def get_by_id(id), do: GenServer.call(@mod, {:id, id})
   def get_random, do: GenServer.call(@mod, :random)
   def get_regex(regex), do: GenServer.call(@mod, {:regex, regex})
   def get_by_person(person), do: GenServer.call(@mod, {:person, person})
+  def store_quote(conn), do: GenServer.call(@mod, {:store, conn})
 
   # Callbacks
 
@@ -40,10 +41,19 @@ defmodule FuturamaQuotes.Server do
   def handle_call({:person, person}, _from, state) do
     {:reply,
      quotes
-     |> Enum.filter(&(&1.by
+     |> Enum.filter(&(&1.character
                       |> String.downcase
                       |> String.contains?(person |> String.downcase))),
      state}
+  end
+
+  def handle_call({:store, conn_state}, _from, state) do
+    {:ok, _body, q} = conn_state
+    storable = %Quote{character: q.body_params["character"],
+                      text: q.body_params["text"]}
+    {:reply,
+      storable,
+      [state | storable]}
   end
 
   # Private helpers

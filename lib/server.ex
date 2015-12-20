@@ -1,5 +1,6 @@
 defmodule FuturamaQuotes.Server do
   use GenServer
+  require Logger
 
   @mod __MODULE__
 
@@ -18,17 +19,21 @@ defmodule FuturamaQuotes.Server do
   # Callbacks
 
   def handle_call(:all, _from, state) do
+    Logger.info "GET /quote"
     {:reply, state ++ quotes, state}
   end
 
   def handle_call({:id, id}, _from, state) do
+    Logger.info "GET /quote/id/#{id}"
     {:reply,
-     List.flatten(state, quotes
-                         |> Enum.at(id |> String.to_integer)),
+     [state|quotes]
+     |> List.flatten
+     |> Enum.at(id |> String.to_integer),
      state}
   end
 
   def handle_call(:random, _from, state) do
+    Logger.info "GET /quote/random"
     {:reply,
      state
      |> List.flatten(quotes)
@@ -36,80 +41,29 @@ defmodule FuturamaQuotes.Server do
      state}
   end
 
-  def handle_call({:regex, regex}, _from, state) do
+  def handle_call({:regex, regex_text}, _from, state) do
+    {:ok, regex} = Regex.compile(regex_text)
+    Logger.info "GET /quote/regex/#{Macro.to_string(regex)}"
     {:reply,
      state
      |> List.flatten(quotes)
-     |> Enum.filter(&(&1.text |> String.match?(regex))),
-     state}
-  end
-
-  def handle_call({:person, person}, _from, state) do
-    {:reply,
-     state
-     |> List.flatten(quotes)
-     |> Enum.filter(&(&1.character
-                      |> String.downcase
-                      |> String.contains?(person |> String.downcase))),
+     |> Enum.filter(&(&1 |> String.match?(regex))),
      state}
   end
 
   def handle_call({:store, conn_state}, _from, state) do
     {:ok, _body, q} = conn_state
-    storable = %Quote{character: q.body_params["character"],
-                      text: q.body_params["text"]}
+    Logger.info "POST /quote \"#{q.body_params["quote"]}\""
     {:reply,
-      storable,
-      state ++ [storable]}
+      q.body_params["quote"],
+      state ++ [q.body_params["quote"]]}
   end
 
   # Private helpers
-  defp take_multi(q_list) do
-    q_list
-    |> Enum.filter(&(&1 |> String.match?(~r/^[^ ]+.+: /)))
-    |> Enum.map(fn q ->
-      pair = q |> String.split(":")
-      %Quote{
-        character: hd(pair),
-        text: pair |> Enum.slice(1..-1) |> Enum.join
-      }
-    end)
-  end
-
-  defp take_dashed(q_list) do
-    q_list
-    |> Enum.filter(&(&1 |> String.at(0) == "“"))
-    |> Enum.map(fn q ->
-      full_block = String.split(q, ~r/\s-/)
-      names = full_block |> Enum.slice(1..-1) |> Enum.take_every(2) 
-      texts = Enum.take_every(full_block, 2)
-      
-      for {name, text} <- Enum.zip(names, texts) do
-        %Quote{
-          character: name,
-          text: text
-        }
-      end
-    end)
-    |> List.flatten
-  end
-
-  defp take_unattributed(q_list) do
-    q_list
-    |> Enum.filter(fn q ->
-      not String.match?(q, ~r/^[ “,]+.+: /) and String.at(q,0) != "“"
-    end)
-    |> Enum.map(&(%Quote{text: &1}))
-  end
-
   defp quotes do
-    {:ok, document} =
-      "#{System.cwd!}/futurama.json"
-      |> File.read!
-      |> Poison.decode
-    take_multi(document) ++
-    take_dashed(document) ++
-    take_unattributed(document)
+    "#{System.cwd!}/futurama.json"
+    |> File.read!
+    |> Poison.decode!
   end
 end
     

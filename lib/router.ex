@@ -16,11 +16,9 @@ defmodule FuturamaQuotes.Router do
     do: send_resp conn, 200, Server.get_by_id(id) |> Poison.encode!
   get "/quote/regex/:regex",
     do: send_resp conn, 200, Server.get_regex(regex) |> Poison.encode!
-  get "/quote/by/:person",
-    do: send_resp conn, 200, Server.get_by_person(person) |> Poison.encode!
 
   post "/quote",
-    do: send_resp conn, 403, conn
+    do: send_resp conn, 200, conn
                              |> Plug.Conn.read_body
                              |> Server.store_quote
                              |> Poison.encode!

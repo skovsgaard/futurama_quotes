@@ -1,6 +1,7 @@
 defmodule FuturamaQuotes.Server do
   use GenServer
   require Logger
+  import FuturamaQuotes.Storage, only: [save_quote: 1]
 
   @mod __MODULE__
 
@@ -60,11 +61,13 @@ defmodule FuturamaQuotes.Server do
   end
 
   def handle_call({:store, conn_state}, _from, _state) do
-    {:ok, _body, q} = conn_state
+    {:ok, body, q} = conn_state
+    IO.inspect body
     Logger.info "POST /quote \"#{q.body_params["quote"]}\""
+    save_quote(q.body_params["quote"])
     {:reply,
-      q.body_params["quote"],
-      :ok}
+     quotes,
+     :ok}
   end
 
   # Private helpers

@@ -49,6 +49,16 @@ defmodule FuturamaQuotes.Server do
      :ok}
   end
 
+  def handle_call({:person, person}, _from, _state) do
+    character = String.downcase(person)
+    {:ok, regex} = Regex.compile "#{character}:| -#{character}"
+    Logger.info "GET /quote/person/#{person}"
+    {:reply,
+     quotes
+     |> Enum.filter(&(String.match? String.downcase(&1), regex)),
+     :ok}
+  end
+
   def handle_call({:store, conn_state}, _from, _state) do
     {:ok, _body, q} = conn_state
     Logger.info "POST /quote \"#{q.body_params["quote"]}\""

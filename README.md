@@ -1,19 +1,11 @@
 # FuturamaQuotes
 
-**TODO: Add description**
+The routes are:
 
-## Installation
-
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
-
-  1. Add futurama_quotes to your list of dependencies in `mix.exs`:
-
-        def deps do
-          [{:futurama_quotes, "~> 0.0.1"}]
-        end
-
-  2. Ensure futurama_quotes is started before your application:
-
-        def application do
-          [applications: [:futurama_quotes]]
-        end
+    GET / #=> Get all quotes
+    GET /quote #=> Same as above
+    GET /quote/random #=> Get a random quote
+    GET /quote/:id #=> Get by index in quote list
+    GET /quote/regex/:regex #=> Get quote matching :regex
+    GET /quote/by/:person #=> Get quotes featuring :person
+    POST /quote #=> Save a new quote

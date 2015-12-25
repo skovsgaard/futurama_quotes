@@ -1,5 +1,8 @@
 # FuturamaQuotes
 
+An OTP-application demonstrating how to handle state.
+An Agent keeps a list of Futurama-quotes and the Server-module implements the logic tied to the routes below.
+
 The routes are:
 
     GET / #=> Get all quotes
